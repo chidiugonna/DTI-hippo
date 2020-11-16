@@ -1,0 +1,8 @@
+site_name: hippo-connectivity
+nav:
+    - Home: index.md
+theme: readthedocs
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
