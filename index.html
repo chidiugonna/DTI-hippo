@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="None">
+  
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>hippo-connectivity</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Home";
+    var mkdocs_page_input_path = "index.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="." class="icon icon-home"> hippo-connectivity</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#references">References</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#gradient-based-parcellation-methods">Gradient-Based Parcellation methods</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#connectivity-based-parcellation">Connectivity-Based Parcellation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#brain-segmentation-and-parcellation">Brain Segmentation and Parcellation</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#tms-and-the-hippocampus">TMS and the Hippocampus</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#hippocampal-connectivity-function-and-parcellation">Hippocampal Connectivity, Function and Parcellation</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href=".">hippo-connectivity</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Home</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h1 id="targeting-the-hippocampus-using-tms">Targeting the Hippocampus using TMS</h1>
+<h2 id="references">References</h2>
+<h3 id="gradient-based-parcellation-methods">Gradient-Based Parcellation methods</h3>
+<p>H. Johansen-Berg, T. E. J. Behrens, M. D. Robson, I. Drobnjak, M. F. S. Rushworth, J. M. Brady, S. M. Smith, D. J. Higham, P. M. Matthews (2004) <a href="https://www.pnas.org/content/101/36/13335">Changes in connectivity profiles define functionally distinct regions in human medial frontal cortex.</a> Proceedings of the National Academy of Sciences Sep 2004, 101 (36) 13335-13340; DOI: 10.1073/pnas.0403743101 </p>
+<p>Van Den Heuvel, M. P., &amp; Hulshoff Pol, H. E. (2010). <a href="https://onlinelibrary.wiley.com/doi/full/10.1002/hbm.20893">Specific somatotopic organization of functional connections of the primary motor network during resting state.</a> Human brain mapping, 31(4), 631-644.</p>
+<p>Cerliani, L., Thomas, R. M., Jbabdi, S., Siero, J. C., Nanetti, L., Crippa, A., ... &amp; Keysers, C. (2012). <a href="https://onlinelibrary.wiley.com/doi/epdf/10.1002/hbm.21338">Probabilistic tractography recovers a rostrocaudal trajectory of connectivity variability in the human insular cortex.</a> Human brain mapping, 33(9), 2005-2034.</p>
+<p>Haak, K. V., Marquand, A. F., &amp; Beckmann, C. F. (2018). <a href="https://www.sciencedirect.com/science/article/pii/S1053811917305463">Connectopic mapping with resting-state fMRI.</a> Neuroimage, 170, 83-94.
+<a href="github.com/koenhaak/congrads">Github for Haak's Code</a>
+Koen Haak (OHBM 2019) <a href="https://www.pathlms.com/ohbm/courses/12238/sections/15843/video_presentations/138219">Understanding Brain - behaviour Relationships Using Connectopic Mapping and Spatial Statistical Modelling </a></p>
+<p>Bajada, C. J., Jackson, R. L., Haroon, H. A., Azadbakht, H., Parker, G. J., Ralph, M. A. L., &amp; Cloutman, L. L. (2017). <a href="https://www.sciencedirect.com/science/article/pii/S1053811917303051">A graded tractographic parcellation of the temporal lobe.</a> Neuroimage, 155, 503-512.</p>
+<p>Bajada, C., Campos, L. Q. C., Caspers, S., Muscat, R., Ralph, M. A. L., Parker, G., ... &amp; Trujillo-Barreto, N. (2020). [A tutorial and tool for exploring feature similarity gradients with MRI data].(https://pubmed.ncbi.nlm.nih.gov/32650053/)</p>
+<p><a href="https://github.com/VBIndex/">VB Toolbox</a> for use with tutorial paper above.</p>
+<p>Jackson, R. L., Bajada, C. J., Rice, G. E., Cloutman, L. L., &amp; Ralph, M. A. L. (2018). <a href="https://www.sciencedirect.com/science/article/pii/S1053811917303166">An emergent functional parcellation of the temporal cortex.</a> Neuroimage, 170, 385-399.</p>
+<p>Friedrich, P., Forkel, S. J., &amp; de Schotten, M. T. (2020). <a href="https://reader.elsevier.com/reader/sd/pii/S105381192030803X?token=447CCFD9CB85BBC6A174AEB9D624D09726BCEDADFD3C86253008600C44287814EFD95DF62AB2283EB507974FC764182C">Mapping the principal gradient onto the corpus callosum. bioRxiv</a>.</p>
+<p>Singh, M. F., Braver, T. S., Cole, M. W., &amp; Ching, S. (2020). <a href="https://www.biorxiv.org/content/10.1101/678243v3.full.pdf">Estimation and Validation of Individualized Dynamic Brain Models with Resting State fMRI.</a> BioRxiv, 678243.</p>
+<p>Munsell, B. C., Gleichgerrcht, E., Hofesmann, E., Delgaizo, J., McDonald, C. R., Marebwa, B., ... &amp; Gilmore, J. H. (2020). <a href="https://www.sciencedirect.com/science/article/pii/S105381192030608X">Personalized connectome fingerprints: Their importance in cognition from childhood to adult years</a>. NeuroImage, 221, 117122.</p>
+<h3 id="connectivity-based-parcellation">Connectivity-Based Parcellation</h3>
+<p>Tim Dyrby, (2015) <a href="https://www.pathlms.com/ohbm/courses/1492/sections/1822/video_presentations/17176">Introducton to Diffusion Tractography</a></p>
+<p>Maxime Descoteaux, (2017) <a href="https://www.pathlms.com/ohbm/courses/5158/sections/7777/video_presentations/75815">Diffusion Tractography</a> </p>
+<p>Paula Croxson, (2018)<a href="https://www.pathlms.com/ohbm/courses/8246/sections/12542/video_presentations/115842"> PART I Parcellate the brain using anatomical features: Histological and microstructural architecture</a></p>
+<p>Sarah Genon, (2018) <a href="https://www.pathlms.com/ohbm/courses/8246/sections/12542/video_presentations/115843">PART 1 Parcellate the brain using anatomical features - tractography based subdivision</a></p>
+<p>Danilo Bzdok, (2018) <a href="https://www.pathlms.com/ohbm/courses/8246/sections/12542/video_presentations/115844">PART II Parcellate the brain using functional features: Functional MRI coactivation parcellation. Danilo Bzdok</a></p>
+<p>Lucinda Uddin, (2018) <a href="https://www.pathlms.com/ohbm/courses/8246/sections/12542/video_presentations/115845">PART II Parcellate the brain using functional features: Resting-state functional connectivity subdivision.</a></p>
+<p>Daniel Margules, (2018) <a href="https://www.pathlms.com/ohbm/courses/8246/sections/12542/video_presentations/115846">PART III Mapping gradients in functional topographies using resting-state functional connectivity.</a></p>
+<p>Genon, S., Wensing, T., Reid, A., Hoffstaedter, F., Caspers, S., Grefkes, C., ... &amp; Eickhoff, S. B. (2017). <a href="https://www.sciencedirect.com/science/article/pii/S1053811917304524?casa_token=tmIeFNAWhlAAAAAA:0u-6jtgouoypifeZ2Cy2jU4XS181Ns7ApnH4aWEeZsFkHhcCGM1B-VHzqH4wz6HQ2t3-fUU-GQ">Searching for behavior relating to grey matter volume in a-priori defined right dorsal premotor regions: lessons learned.</a> Neuroimage, 157, 144-156.</p>
+<p>Genon, S., Reid, A., Li, H., Fan, L., Müller, V. I., Cieslik, E. C., ... &amp; Fox, P. T. (2018). <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5555826/">The heterogeneity of the left dorsal premotor cortex evidenced by multimodal connectivity-based parcellation and functional characterization.</a> Neuroimage, 170, 400-411.</p>
+<p>Genon, S., Li, H., Fan, L., Müller, V. I., Cieslik, E. C., Hoffstaedter, F., ... &amp; Moebus, S. (2017). <a href="https://academic.oup.com/cercor/article/27/3/2095/3056282">The right dorsal premotor mosaic: organization, functions, and connectivity.</a> Cerebral Cortex, 27(3), 2095-2110</p>
+<p>Sheets, J. R., Briggs, R. G., Bai, M. Y., Poologaindran, A., Young, I. M., Conner, A. K., ... &amp; Sughrue, M. E. (2020). <a href="https://www.sciencedirect.com/science/article/pii/S0022510X20302446?casa_token=-fsn5Tju6oMAAAAA:ZBcafBz-aZASoBSN_JjaSo4MGmQaSAtmY_xL7IVe62aYu1gUERmjg00Y511s1uSVkPizSH9XPA">Parcellation-based modeling of the dorsal premotor area.</a> Journal of the Neurological Sciences, 415, 116907.</p>
+<h3 id="brain-segmentation-and-parcellation">Brain Segmentation and Parcellation</h3>
+<p>NeuroImage special issue on <a href="https://www.sciencedirect.com/journal/neuroimage/vol/170/suppl/C">"Segmenting the Brain"</a></p>
+<p>Eickhoff, S. B., Yeo, B. T., &amp; Genon, S. (2018). <a href="https://www.nature.com/articles/s41583-018-0071-7">Imaging-based parcellations of the human brain.</a> Nature Reviews Neuroscience, 19(11), 672-686.</p>
+<p>Genon, S., Reid, A., Langner, R., Amunts, K., &amp; Eickhoff, S. B. (2018). <a href="https://www.sciencedirect.com/science/article/pii/S1364661318300238">How to characterize the function of a brain region.</a> Trends in cognitive sciences, 22(4), 350-364.</p>
+<h3 id="tms-and-the-hippocampus">TMS and the Hippocampus</h3>
+<p>Nilakantan, A. S., Bridge, D. J., Gagnon, E. P., VanHaerents, S. A., &amp; Voss, J. L. (2017). <a href="https://www.cell.com/current-biology/pdfExtended/S0960-9822(16)31523-8">Stimulation of the posterior cortical-hippocampal network enhances precision of memory recollection.</a> Current Biology, 27(3), 465-470.</p>
+<p>Koch, G., Bonnì, S., Pellicciari, M. C., Casula, E. P., Mancini, M., Esposito, R., ... &amp; Motta, C. (2018). <a href="https://www.sciencedirect.com/science/article/pii/S1053811917310728?casa_token=lB2RBSr0x9cAAAAA:ExYuDBg_T-9xkgj3yJ4P6UBj4iNMWxQSFhcwlwpwpE-hQ_dRAPvJLnBAuHOHh7ejTM3ASWhTWA">Transcranial magnetic stimulation of the precuneus enhances memory and neural activity in prodromal Alzheimer's disease.</a> Neuroimage, 169, 302-311.</p>
+<p>Tambini, A., Nee, D. E., &amp; D'Esposito, M. (2018). <a href="https://www-mitpressjournals-org.ezproxy2.library.arizona.edu/doi/pdf/10.1162%2Fjocn_a_01300">Hippocampal-targeted theta-burst stimulation enhances associative memory formation.</a> Journal of cognitive neuroscience, 30(10), 1452-1472.</p>
+<h3 id="hippocampal-connectivity-function-and-parcellation">Hippocampal Connectivity, Function and Parcellation</h3>
+<p>Maller, J. J., Welton, T., Middione, M., Callaghan, F. M., Rosenfeld, J. V., &amp; Grieve, S. M. (2019). <a href="https://www.nature.com/articles/s41598-018-37905-9">Revealing the hippocampal connectome through super-resolution 1150-direction diffusion MRI.</a> Scientific reports, 9(1), 1-13.</p>
+<p>Sigurdsson, T., &amp; Duvarci, S. (2016). <a href="https://www.frontiersin.org/articles/10.3389/fnsys.2015.00190/full">Hippocampal-prefrontal interactions in cognition, behavior and psychiatric disease.</a> Frontiers in systems neuroscience, 9, 190.</p>
+<p>Burman, D. D. (2019). <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0222064">Hippocampal connectivity with sensorimotor cortex during volitional finger movements: Laterality and relationship to motor learning.</a> PloS one, 14(9), e0222064.</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+      
+    </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.1.2
+Build Date UTC : 2020-11-16 18:08:42.224940+00:00
+-->
