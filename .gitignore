@@ -1,22 +1,32 @@
 # mkdocs
 site/
 
+#General folders
+Archives/
+references/
+software/
+presentation/
+helper-scripts/
+practicum91_OLD/
+backup-practicum91/
+output/
+
 #specific files
 todo.md
 
 #data folders and files
+*.zip
 *.pdf
-nilearn/
-references/
-References/
-@eaDir/
-tdt/
+*.xml
 scripts/
-library/
+matlab-library/
 data/
 DATA/
+DATABACK/
+DATA-BACK/
 exampleData/
 *.jpg
+*.mif
 *.png
 *.gz
 *.dat
