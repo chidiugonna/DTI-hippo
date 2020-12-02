@@ -861,11 +861,14 @@ fi
 FREELABEL=/opt/freesurfer/FreeSurferColorLUT.txt
 FREEORDERED=/opt/mrtrix3/share/mrtrix3/labelconvert/fs_a2009s.txt
 APARC2009NODES=${OUTPUT}/${SUB}_${SES}_aparc2009_nodes.mif
+APARC2009NODEST1W=${OUTPUT}/${SUB}_${SES}_aparc2009_nodes_T1w.nii.gz
 if [ ! -f ${APARC2009NODES} ] || [ ${OVERWRITE} = "True" ]
 then
 runtrix labelconvert $APARC2009ASEGDWI $FREELABEL $FREEORDERED $APARC2009NODES
 #runtrix cp $FREELABEL $WORKDIR/FreeSurferColorLUT.txt
 #runtrix cp $FREEORDERED $WORKDIR/fs_a2009s.txt
+echo "Generating ordered nodes for aparc2009 in T1w space"
+runtrix labelconvert $APARC2009ASEG $FREELABEL $FREEORDERED $APARC2009NODEST1W
 fi
 
 
@@ -930,6 +933,78 @@ then
 runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_Hippo87.tck
 runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_Hippo80.tck
 fi
+
+
+# Create Symbolic links to fsaverage, lh.EC_average and rh.EC_average for hcpmmp1 atlas creation
+LH_HCPANNOT=/xdisk/nkchen/chidi/repos/DTI-hippo/custom-pipeline/hcpmmp1_atlas/lh.HCPMMP1.annot
+RH_HCPANNOT=/xdisk/nkchen/chidi/repos/DTI-hippo/custom-pipeline/hcpmmp1_atlas/rh.HCPMMP1.annot
+HCPMMP1ASEGFS=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg.mgz
+HCPMMP1ASEGFS_NATIVE=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg_native.mgz
+HCPMMP1ASEG=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg.nii.gz
+HCPMMP1ASEGDWI=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg_dwispace.nii.gz
+if [ ! -f ${HCPMMP1ASEGDWI} ] || [ ${OVERWRITE} = "True" ]
+then
+    FSAVERAGE_TARGET=${FREEDIR}/fsaverage
+    FSAVERAGE_SOURCE=/opt/freesurfer/subjects/fsaverage
+    runtrix ln -s $FSAVERAGE_SOURCE $FSAVERAGE_TARGET
+    #runtrix cp -R $FSAVERAGE_SOURCE $FSAVERAGE_TARGET
+
+    LHEC_TARGET=${FREEDIR}/lh.EC_average 
+    LHEC_SOURCE=/opt/freesurfer/subjects/lh.EC_average 
+    runtrix ln -s $LHEC_SOURCE $LHEC_TARGET
+    #runtrix cp -R  $LHEC_SOURCE $LHEC_TARGET
+
+    RHEC_TARGET=${FREEDIR}/rh.EC_average 
+    RHEC_SOURCE=/opt/freesurfer/subjects/rh.EC_average 
+    runtrix ln -s $RHEC_SOURCE $RHEC_TARGET
+    #runtrix cp -R $RHEC_SOURCE $RHEC_TARGET
+
+    runtrix ${FREESURF}/freebash.sh ${FREEDIR} mri_surf2surf --srcsubject fsaverage --trgsubject ${SUB} --hemi lh --sval-annot ${LH_HCPANNOT} --tval ${FREEDIR}/${SUB}/label/lh.HCPMMP1.annot
+
+    runtrix ${FREESURF}/freebash.sh ${FREEDIR} mri_surf2surf --srcsubject fsaverage --trgsubject ${SUB} --hemi rh --sval-annot ${RH_HCPANNOT} --tval ${FREEDIR}/${SUB}/label/rh.HCPMMP1.annot
+
+    runtrix ${FREESURF}/freebash.sh ${FREEDIR} mri_aparc2aseg --s ${SUB} --old-ribbon --annot HCPMMP1 --o $HCPMMP1ASEGFS
+
+     echo "Using existing hcpmmp1 convert from Freesurfer space to native space"
+    runtrix ${FREESURF}/freebash.sh ${FREEDIR} mri_label2vol --seg ${HCPMMP1ASEGFS} --temp ${FREEDIR}/${SUB}/mri/rawavg.mgz --o ${HCPMMP1ASEGFS_NATIVE} --regheader ${HCPMMP1ASEGFS}  
+
+    runtrix $FREESURF/freebash.sh ${FREEDIR} mri_convert --in_type mgz --out_type nii  ${HCPMMP1ASEGFS_NATIVE} ${HCPMMP1ASEG}
+
+    echo "flirt -in ${HCPMMP1ASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${HCPMMP1ASEGDWI}"
+    runtrix flirt -in ${HCPMMP1ASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${HCPMMP1ASEGDWI}
+
+fi
+
+
+# Use labelconvert
+HCPMMPLABEL=/opt/mrtrix3/share/mrtrix3/labelconvert/hcpmmp1_original.txt
+HCPMMPORDERED=/opt/mrtrix3/share/mrtrix3/labelconvert/hcpmmp1_ordered.txt
+HCPMMPNODES=${OUTPUT}/${SUB}_${SES}_aparc.HCPMMP1+aseg_nodes.mif
+HCPMMPNODEST1W=${OUTPUT}/${SUB}_${SES}_aparc.HCPMMP1+aseg_nodes_T1w.nii.gz
+if [ ! -f ${HCPMMPNODES} ] || [ ${OVERWRITE} = "True" ]
+then
+echo "Generating ordered nodes for hcpmmp1 in DWI space"
+runtrix labelconvert $HCPMMP1ASEGDWI $HCPMMPLABEL $HCPMMPORDERED $HCPMMPNODES
+echo "Generating ordered nodes for hcpmmp1 in T1w space"
+runtrix labelconvert $HCPMMP1ASEG $HCPMMPLABEL $HCPMMPORDERED $HCPMMPNODEST1W
+fi
+
+
+if [ $VIEWIMG = "True" ]
+then
+ runtrix mrview $HCPMMPNODES
+fi
+
+
+# Generate Matrix using APARC2009
+HCPMMPMATRIX=$OUTPUT/${SUB}_${SES}_HCPMMP1+aseg_matrix.csv
+HCPMMPASSG=$OUTPUT/${SUB}_${SES}_assignments_HCPMMP1+aseg_matrix.csv
+if [ ! -f ${HCPMMPMATRIX} ] || [ ${OVERWRITE} = "True" ]
+then
+runtrix tck2connectome -symmetric -zero_diagonal -scale_invnodevol $TRACKSIFT $HCPMMPNODES ${HCPMMPMATRIX} -out_assignment $HCPMMPASSG
+fi
+
+
 
 #####################
 # End Timing Block

@@ -5,6 +5,10 @@ site/
 Tractography/
 Archives/
 references/
+References/
+@eaDir/
+Diffusion_MRI/
+Network_Stats/
 software/
 presentation/
 helper-scripts/

@@ -1,0 +1,373 @@
+Bootstrap: docker
+From: ubuntu:xenial-20200514
+
+%help
+Singularity container with:
+    FSL 6.0.2 and CUDA Toolkit 9.1
+    Freesurfer 7.1.1
+    HCP Workbench (wbview and wbcommand) v1.4.2
+    HCP Pipelines v4.2.2-rc.2
+    ANTS v2.3.4
+    Ciftify v2.3.3
+    AFNI v20.2.10
+    ITKSNAP v3.6.0
+    Mrtrix3 v3.0.2 
+
+for freesurfer, a matlab source file is also available at /opt/bin/startup.m to be used with matlab scripts.
+
+Please refer to https://github.com/MRIresearch/NeuroPipelines/blob/master/containers/nklab-surfaceproc/README.md for more information about this container.
+
+
+%setup
+
+%files
+./src/fsl_sub /
+./src/startup.sh /
+./src/license.txt /
+./src/readme /
+./src/version / 
+./src/startup.m /
+./src/itksnap-3.6.0-20170401-Linux-x86_64.tar.gz /
+
+%environment
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+export LANGUAGE=en_US.UTF-8
+
+export PATH=/opt/bin:$PATH
+
+export PATH=/usr/local/cuda/bin:$PATH
+
+export FSLDIR=/opt/fsl
+export PATH=$FSLDIR/bin:$PATH
+
+export FREESURFER_HOME=/opt/freesurfer
+export FS_LICENSE=${FREESURFER_HOME}/license.txt
+export PATH=$FREESURFER_HOME/bin:$PATH
+export PATH=$FREESURFER_HOME/mni/bin:$PATH
+export PATH=/opt/freesurfer/tktools:$PATH
+
+export PATH=/opt/miniconda/bin:$PATH
+export PATH=/opt/workbench/bin_linux64:$PATH
+
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/.singularity.d/libs:/usr/lib:$LD_LIBRARY_PATH
+
+export FSL_FIXDIR=/opt/fix
+export PATH=$FSL_FIXDIR:$PATH
+export MATLAB_COMPILER_RUNTIME=/opt/mcr/v93
+export FSL_FIX_MATLAB_MODE=0
+export HCPPIPEDIR=/opt/HCPpipelines
+
+export ANTSPATH=/opt/ANTs/bin
+export PATH=/opt/ANTScode/ANTs/Scripts:$ANTSPATH:$PATH
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=4
+export LD_LIBRARY_PATH=/opt/ANTs/lib:$LD_LIBRARY_PATH
+
+export PATH=/opt/afni/src/linux_ubuntu_16_64_glw_local_shared:$PATH
+
+export PATH=/opt/itksnap/bin:$PATH
+
+export PATH=/opt/mrtrix3/bin:$PATH
+
+%runscript
+cd /opt/data
+exec /opt/bin/startup.sh "$@"
+
+%test
+
+%post
+mkdir -p /xdisk /opt/data /opt/bin /opt/work /opt/input /opt/output /opt/config
+
+export DEBIAN_FRONTEND=noninteractive
+export TZ=America/Phoenix
+ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+apt-get update
+
+apt-get install -y \
+locales 
+
+echo "LC_ALL=en_US.UTF-8" >> /etc/environment
+echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+echo "LANG=en_US.UTF-8" > /etc/locale.conf
+locale-gen en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+apt-get install -y \
+	nano \
+	apt-utils \
+	wget \
+	curl \
+        dc \
+	lsb-core \
+        unzip \
+        git
+
+# libraries for mrtrix
+apt-get install -y python \
+        git \
+        g++ \
+        libeigen3-dev \
+        zlib1g-dev \
+        libqt4-opengl-dev \
+        libgl1-mesa-dev \
+        libfftw3-dev
+
+cd /opt
+git clone https://github.com/MRtrix3/mrtrix3.git
+cd /opt/mrtrix3
+git checkout 3.0.2
+./configure
+./build 
+
+mkdir -p /opt/tmp
+#install CUDA 9.1
+cd /opt/tmp
+wget https://developer.nvidia.com/compute/cuda/9.1/Prod/local_installers/cuda_9.1.85_387.26_linux
+mkdir -p nvidia_installers
+chmod +x cuda_9.1.85_387.26_linux
+./cuda_9.1.85_387.26_linux -extract=`pwd`/nvidia_installers
+rm cuda_9.1.85_387.26_linux
+cd nvidia_installers
+./cuda*.run --tar mxvf
+cp InstallUtils.pm /usr/lib/x86_64-linux-gnu/perl-base 
+rm cuda-samples*
+rm NVIDIA-Linux*
+./cuda-linux.9.1.85-23083092.run -noprompt
+wget https://developer.nvidia.com/compute/cuda/9.1/Prod/patches/1/cuda_9.1.85.1_linux
+chmod +x cuda_9.1.85.1_linux
+./cuda_9.1.85.1_linux --silent -accept-eula
+wget https://developer.nvidia.com/compute/cuda/9.1/Prod/patches/2/cuda_9.1.85.2_linux
+chmod +x cuda_9.1.85.2_linux
+./cuda_9.1.85.2_linux --silent -accept-eula
+wget https://developer.nvidia.com/compute/cuda/9.1/Prod/patches/3/cuda_9.1.85.3_linux
+chmod +x cuda_9.1.85.3_linux
+./cuda_9.1.85.3_linux --silent -accept-eula
+cd ..
+rm -R nvidia_installers
+
+#libraries for fsleyes
+apt-get install -y  freeglut3 \
+                    libwebkitgtk3.0
+
+#install FSL 6.0.2; requires python2.7 
+apt-get update
+apt-get install -y python
+export  FSLDIR=/opt/fsl
+cd /opt
+wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py
+/usr/bin/python fslinstaller.py -q -d $FSLDIR -V 6.0.2
+
+#install probtrackx2 for CUDA 9.1 - note that the commented link is for FSL 5.* versions
+#the link that is used below is for FSL 6.* versions.
+mkdir -p /opt/tmp/probtrackx
+cd /opt/tmp/probtrackx
+#wget http://users.fmrib.ox.ac.uk/~moisesf/Probtrackx_GPU/CUDA_9.1/probtrackx2_gpu.zip
+wget http://users.fmrib.ox.ac.uk/~moisesf/Probtrackx_GPU/FSL_6/CUDA_9.1/probtrackx2_gpu.zip
+unzip probtrackx2_gpu.zip
+rm -f probtrackx2_gpu.zip
+mv probtrackx2_gpu $FSLDIR/bin
+
+#install bedpostx for CUDA 9.1 - note that the commented link is for FSL 5.* versions
+#the link that is used below is for FSL 6.* versions.
+mkdir -p /opt/tmp/bedpost
+cd /opt/tmp/bedpost
+#wget http://users.fmrib.ox.ac.uk/~moisesf/Bedpostx_GPU/CUDA_9.1/bedpostx_gpu.zip
+wget http://users.fmrib.ox.ac.uk/~moisesf/Bedpostx_GPU/FSL_6/CUDA_9.1/bedpostx_gpu.zip
+unzip bedpostx_gpu.zip
+rm -f bedpostx_gpu.zip
+cp /opt/tmp/bedpost/bin/* $FSLDIR/bin
+cp /opt/tmp/bedpost/lib/* $FSLDIR/lib
+sed -i 's\#!/bin/sh\#!/bin/bash\g' $FSLDIR/bin/bedpostx_postproc_gpu.sh
+
+# install freesurfer 7.1.1
+apt-get install -y  tcsh \
+                    libxmu6 \
+                    libglu1-mesa
+cd /opt
+export FREESURFER_HOME=/opt/freesurfer
+wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.1.1/freesurfer-linux-centos6_x86_64-7.1.1.tar.gz
+tar xz -f freesurfer-linux-centos6_x86_64-7.1.1.tar.gz
+rm /opt/freesurfer-linux-centos6_x86_64-7.1.1.tar.gz
+
+# create symbolic link as tkregister not provided in Freesurfer 7.1.1
+ln -s /opt/freesurfer/tktools/tkregister2.tcl /opt/freesurfer/tktools/tkregister.tcl
+ln -s /opt/freesurfer/bin/tkregister2 /opt/freesurfer/bin/tkregister
+
+# Identify number of cores if needed further below
+export TOTALCORES=$(grep -c ^processor /proc/cpuinfo)
+echo "Can see $TOTALCORES processors"
+NUMCORES=$(expr ${TOTALCORES} / 2)
+echo "Will attempt to use $NUMCORES processors if multiprocessing is possible."
+
+#miniconda
+cd /opt/tmp        
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+chmod +x Miniconda3-latest-Linux-x86_64.sh
+/bin/bash ./Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda -f
+PATH=/opt/miniconda/bin:$PATH
+conda install -y pip
+
+# HCP workbench
+cd /opt
+wget https://www.humanconnectome.org/storage/app/media/workbench/workbench-linux64-v1.4.2.zip
+unzip workbench-linux64-v1.4.2.zip
+rm workbench-linux64-v1.4.2.zip
+
+#download and install gradunwarp
+cd /opt
+wget https://github.com/Washington-University/gradunwarp/archive/v1.2.0.zip
+unzip v1.2.0.zip
+rm v1.2.0.zip
+
+conda install -y -c conda-forge numpy
+conda install -y  numpy-devel
+conda install -y -c conda-forge scipy
+conda install -y -c conda-forge nibabel
+conda install -y -c conda-forge nose
+conda install -y -c conda-forge sphinx
+
+cd /opt/gradunwarp-1.2.0/
+python setup.py install
+
+# download MSM
+apt-get install -y libopenblas-base
+wget https://github.com/ecr05/MSM_HOCR/releases/download/v3.0FSL/msm_ubuntu_v3
+chmod +x msm_ubuntu_v3
+mv msm_ubuntu_v3 $FSLDIR/bin/msm
+
+# Download and Install ICA-FIX
+cd /opt
+wget http://www.fmrib.ox.ac.uk/~steve/ftp/fix-1.06.15.tar.gz
+tar xvfz fix-1.06.15.tar.gz
+
+mkdir -p /opt/mcr
+mkdir -p /opt/tmp/MCRinstall
+cd /opt/tmp/MCRinstall
+wget https://ssd.mathworks.com/supportfiles/downloads/R2017b/deployment_files/R2017b/installers/glnxa64/MCR_R2017b_glnxa64_installer.zip
+unzip MCR_R2017b_glnxa64_installer.zip
+./install -mode silent -agreeToLicense yes -destinationFolder /opt/mcr
+
+# Reference https://gist.github.com/mGalarnyk/41c887e921e712baf86fecc507b3afc7
+apt-get install -y software-properties-common
+apt-get install -y apt-transport-https ca-certificates
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
+# also required this key - https://chrisjean.com/fix-apt-get-update-the-following-signatures-couldnt-be-verified-because-the-public-key-is-not-available/
+apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 51716619E084DAB9
+add-apt-repository 'deb https://cloud.r-project.org/bin/linux/ubuntu xenial-cran35/'
+apt-get update
+apt-get install -y r-base
+
+apt-get update && apt-get install -y build-essential libblas-dev liblapack-dev qt5-default libglu1-mesa libcurl4-openssl-dev libssl-dev libssh2-1-dev --no-install-recommends
+
+#R >= 3.3.0 must already be installed, if you have the R-recommended R packages installed you can probably skip "lattice" through "KernSmooth"
+PACKAGES="lattice_0.20-38 Matrix_1.2-15 survival_2.43-3 MASS_7.3-51.1 class_7.3-14 codetools_0.2-16 KernSmooth_2.23-15 mvtnorm_1.0-8 modeltools_0.2-22 zoo_1.8-4 sandwich_2.5-0 strucchange_1.5-1 TH.data_1.0-9 multcomp_1.4-8 coin_1.2-2 bitops_1.0-6 gtools_3.8.1 gdata_2.18.0 caTools_1.17.1.1 gplots_3.0.1 kernlab_0.9-24 ROCR_1.0-7 party_1.0-25 e1071_1.6-7 randomForest_4.6-12"
+MIRROR="http://cloud.r-project.org"
+
+for package in $PACKAGES
+do
+    wget "$MIRROR"/src/contrib/Archive/$(echo "$package" | cut -f1 -d_)/"$package".tar.gz || \
+        wget "$MIRROR"/src/contrib/"$package".tar.gz
+    R CMD INSTALL "$package".tar.gz
+done
+
+#install HCP Pipelines
+cd /opt
+git clone https://github.com/Washington-University/HCPpipelines.git
+cd /opt/HCPpipelines
+git checkout -f tags/v4.2.2-rc.2
+
+#cmake
+cd /opt/tmp
+wget https://github.com/Kitware/CMake/releases/download/v3.18.1/cmake-3.18.1.tar.gz
+tar xz -f cmake-3.18.1.tar.gz
+rm cmake-3.18.1.tar.gz
+cd cmake-3.18.1
+./configure
+make
+make install
+./bootstrap --prefix=/usr
+make
+make install
+
+#ANTS
+mkdir /opt/ANTScode 
+cd /opt/ANTScode
+git clone https://github.com/ANTsX/ANTs.git
+cd ANTs
+git checkout -f tags/v2.3.4
+mkdir /opt/ANTScode/bin
+cd /opt/ANTScode/bin
+cmake /opt/ANTScode/ANTs
+make
+cd /opt/ANTScode/bin/ANTS-build
+make install
+ln -sf /usr/lib/ants/N4BiasFieldCorrection /usr/local/bin/
+
+# afni compilation
+add-apt-repository universe
+apt-get update && apt-get install -y \
+        tcsh \
+        xfonts-base \
+        python-qt4 \
+        gsl-bin \
+        gnome-tweak-tool \
+        libjpeg62 \
+        xvfb \
+        xterm \
+        vim \
+        libglu1-mesa-dev \
+        libglw1-mesa-dev  \
+        libxm4
+
+export HOMEBACK=$HOME
+export HOME=/opt
+cd /opt
+
+git clone https://github.com/afni/afni.git
+cd /opt/afni
+git checkout -f tags/AFNI_20.2.10
+cp /opt/afni/src/other_builds/Makefile.linux_ubuntu_16_64_glw_local_shared /opt/afni/src/Makefile
+
+apt-get update
+apt-get install -y libxmu-dev libxt-dev libmotif-dev
+apt-get install -y libxpm-dev libxi-dev libxmhtml-dev
+apt-get install -y libglib2.0-dev libgsl-dev
+apt-get install -y m4 freeglut3-dev
+
+
+mv /usr/include/GL/GLwDrawA.h /usr/include/GL/GLwDrawA.h.orig
+sed 's/^GLAPI WidgetClass/extern GLAPI WidgetClass/' \
+         /usr/include/GL/GLwDrawA.h.orig > ~/tmp_GLwDrawA.h
+mv ~/tmp_GLwDrawA.h /usr/include/GL/GLwDrawA
+
+cd /opt/afni/src
+make vastness
+
+export HOME=$HOMEBACK
+conda install -y -c conda-forge matplotlib
+export PATH=/opt/afni/src/linux_ubuntu_16_64_glw_local_shared:$PATH
+rPkgsInstall -pkgs ALL
+
+# Install CIFTIFY
+pip install ciftify
+
+mkdir /opt/itksnap
+cd /opt/itksnap
+mv /itksnap-3.6.0-20170401-Linux-x86_64.tar.gz ./
+tar -zxvf itksnap-3.6.0-20170401-Linux-x86_64.tar.gz
+rm itksnap-3.6.0-20170401-Linux-x86_64.tar.gz
+cp -R itksnap-3.6.0-20170401-Linux-x86_64/* .
+rm -R itksnap-3.6.0-20170401-Linux-x86_64
+
+rm -rf /opt/tmp
+
+chmod -R 777 /opt
+
+mv /fsl_sub $FSLDIR/bin
+mv /startup.sh /opt/bin
+mv /readme /opt/bin
+mv /version /opt/bin
+mv /startup.m /opt/bin
+mv /license.txt /opt/freesurfer
+

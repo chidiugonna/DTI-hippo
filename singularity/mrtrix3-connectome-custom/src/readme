@@ -1,0 +1,4 @@
+Singularity container with:
+    mrtrix3_connectome   
+
+Additional flags --backup and --freesurfer-dir have been added to make a copy of the parcellation directory and to utilize an existing recon-all run respectively.

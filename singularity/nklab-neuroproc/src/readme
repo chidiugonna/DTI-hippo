@@ -1,0 +1,14 @@
+Singularity container with:
+    FSL 6.0.2 and CUDA Toolkit 9.1
+    Freesurfer 7.1.1
+    HCP Workbench (wbview and wbcommand) v1.4.2
+    HCP Pipelines v4.2.0
+    ANTS v2.3.4
+    Ciftify v2.3.3
+    AFNI v20.2.10
+    ITKSNAP v3.6.0
+    Mrtrix3 v3.0.2   
+
+for freesurfer, a matlab source file is also available at /opt/bin/startup.m to be used with matlab scripts.
+
+Please refer to https://github.com/MRIresearch/NeuroPipelines/blob/master/containers/nklab-neuroproc/README.md for more information about this container.
