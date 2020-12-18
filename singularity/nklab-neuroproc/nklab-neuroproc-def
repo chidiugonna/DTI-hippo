@@ -360,6 +360,11 @@ rm itksnap-3.6.0-20170401-Linux-x86_64.tar.gz
 cp -R itksnap-3.6.0-20170401-Linux-x86_64/* .
 rm -R itksnap-3.6.0-20170401-Linux-x86_64
 
+# Additional python packages
+conda install -c conda-forge nilearn
+pip install pybids
+
+
 rm -rf /opt/tmp
 
 chmod -R 777 /opt

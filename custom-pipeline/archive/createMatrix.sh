@@ -104,10 +104,9 @@ fi
 #--------------------------
 if [ $VIEWIMG = "True" ]
 then
-  echo -e "\n$STEP: Viewing raw DWI $DWI in mrview."
+  echo -e "\n$STEP: Viewing raw $DWI in mrview."
   runtrix mrview $DWI
 fi
-
 
 ################################################################################################
 # 2. Denoise the mrtrix dwi file using M-PCA algorithm
@@ -224,14 +223,14 @@ echo -e "\n$STEP $SUBSTEP \n"
 
 if [ ! -f $meanPA ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
-    TDIM=$(runtrix fslinfo $RAWRPE | sed -n /^dim4/p | sed "s/.*\s\(.*\)$/\1/")
-    if [ $TDIM -eq 1 ]
-    then
+    NUM=$(runtrix mrinfo -size $RPE)
+    TDIM=$(echo "${NUM: -1}")
+    if [ $TDIM -gt 1 ]
         echo -e "\tRPE has 1 volume. Simply copy RPE as the mean PA image. "
         echo -e "\tcp ${RPE} ${meanPA}"
         cp ${RPE} ${meanPA} 
     else
-        echo -e "\tCalculate mean B0 image from $RPE which has $TDIM images"
+        echo -e "\tCalculate mean B0 image from $RPE"
         echo -e "\tmrconvert ${FORCE} $RAWRPE - | mrmath - mean $meanPA -axis 3"
         echo "mrconvert ${FORCE} ${RAWRPE} - | mrmath - mean $meanPA -axis 3" > $RUNPROC4B
         chmod +x $RUNPROC4B
@@ -327,7 +326,6 @@ then
   echo -e "command: mrview $PREPROCDWI $GIBBSDENOISEDWI"
   runtrix mrview $PREPROCDWI $GIBBSDENOISEDWI
 fi
-
 ##########################################################################
 # 6. Run FSL anatomical pipeline and perform registration
 ##########################################################################
@@ -372,7 +370,6 @@ then
     runtrix fsleyes $T1BIAS $T1BIASBRAIN $T1BIASBRAINMASK
 fi
 
-
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # No need to report step below:
 #
@@ -404,11 +401,11 @@ fi
 #runtrix applywarp --ref=${T1BIAS} --in=${MNIREF} --warp=${MNI2T1WARP}  --out=${MNIT1}
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# 7. Register EPI to T1w
+# Register EPI to T1w
 
 # Calculate mean B0
 meanAP_Eddy=$OUTPUT/$SUB-mean_b0_AP_eddycorrected.mif
-RUNPROC7A=$WORK/006a_runproc.sh
+RUNPROC=$WORK/005a_runproc.sh
 
 STEP="STEP 7: EPI_REG:"
 
@@ -419,9 +416,9 @@ if [ ! -f $meanAP_Eddy ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
     echo -e "\textract mean B0 image from $PREPROCDWI"
     echo -e "\tdwiextract $PREPROCDWI - -bzero | mrmath - mean $meanAP_Eddy -axis 3"
-    echo "dwiextract $PREPROCDWI - -bzero | mrmath - mean $meanAP_Eddy -axis 3" > $RUNPROC7A
-    chmod +x $RUNPROC7A
-    runtrixhere $RUNPROC7A
+    echo "dwiextract $PREPROCDWI - -bzero | mrmath - mean $meanAP_Eddy -axis 3" > $RUNPROC
+    chmod +x $RUNPROC
+    runtrixhere $RUNPROC
 else
     if [ $DEBUG = "False" ]; then echo -e "\talready extracted $meanAP_Eddy from  $ $PREPROCDWI"
     else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
@@ -479,51 +476,30 @@ echo "T1 to EPI Transform: $T12EPIMAT"
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #echo "Test forward Transform"
-DWIT1=${PREPROCDWI_NII}_T1space
-SUBSTEP=": Test forward EPI to T1 Transform."
-echo -e "\n$STEP $SUBSTEP \n"
+#DWIT1=${PREPROCDWI_NII}_T1space
+#echo "flirt -in ${PREPROCDWI_NII} -ref ${T1BIAS} -applyxfm -init ${EPI2T1MAT} -out ${DWIT1}"
+#runtrix flirt -in ${PREPROCDWI_NII} -ref ${T1BIAS} -applyxfm -init ${EPI2T1MAT} -out ${DWIT1}
 
-if [ ! -f ${DWIT1}.nii.gz ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
-then
-    echo -e "\tflirt -in ${PREPROCDWI_NII} -ref ${T1BIAS} -applyxfm -init ${EPI2T1MAT} -out ${DWIT1}"
-    runtrix flirt -in ${PREPROCDWI_NII} -ref ${T1BIAS} -applyxfm -init ${EPI2T1MAT} -out ${DWIT1}
-else
-    if [ $DEBUG = "False" ]; then echo "$DWIT1 already created "
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
-fi
-#---------------------------
-if [ $VIEWIMG = "True" ]
-then
-  echo -e "\nViewing \nT1BIAS=${T1BIAS} \nDWIT1=${DWIT1} "
-  runtrix fsleyes ${T1BIAS} ${DWIT1}
-fi
-#-----------------------------------------
+#if [ $VIEWIMG = "True" ]
+#then
+#  echo -e "\nViewing ${T1BIAS} ${DWIT1} "
+#  runtrix fsleyes ${T1BIAS} ${DWIT1}
+#fi
 
-T1DWI=${OUTPUT}/${SUB}_${ANATSES}_T1w_dwispace
-SUBSTEP=": Test reverse T1 to EPI to Transform."
-echo -e "\n$STEP $SUBSTEP \n"
-
-if [ ! -f ${T1DWI}.nii.gz ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
-then
-    echo "flirt -in ${T1BIAS} -ref ${meanB0} -applyxfm -init ${T12EPIMAT} -out ${T1DWI}"
-    runtrix flirt -in ${T1BIAS} -ref ${meanB0} -applyxfm -init ${T12EPIMAT} -out ${T1DWI}
-else
-    if [ $DEBUG = "False" ]; then echo "$T1DWI already created "
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
-fi
-
-if [ $VIEWIMG = "True" ]
-then
-  echo -e "\nViewing \nPREPROCDWI_NII=${PREPROCDWI_NII} \nT1DWI=${T1DWI} "
-  runtrix fsleyes ${PREPROCDWI_NII} ${T1DWI}
-fi
-
-
+#echo "Test reverse Transform from T1 to EPI/DWI Spacce"
+#T1DWI=${OUTPUT}/${SUB}_${ANATSES}_T1w_dwispace.nii.gz
+#echo "flirt -in ${T1BIAS} -ref ${meanB0} -applyxfm -init ${T12EPIMAT} -out ${T1DWI}"
+#runtrix flirt -in ${T1BIAS} -ref ${meanB0} -applyxfm -init ${T12EPIMAT} -out ${T1DWI}
+#VIEWIMG="True"
+#if [ $VIEWIMG = "True" ]
+#then
+#  echo -e "\nViewing ${PREPROCDWI_NII} ${T1DWI} "
+#  runtrix fsleyes ${PREPROCDWI_NII} ${T1DWI}
+#fi
+#VIEWIMG="False"
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# 8. Run Mask creation using dwimask on bias corrected, non-bias corrected or by transforming the T1 brain  mask to dwi space
+# 7. Run Mask creation using dwimask on bias corrected, non-bias corrected or by transforming the T1 brain  mask to dwi space
 # use on of these masks - a more sophisticated alogirthm might combine each image to produce 1 mask.
 DWIUNBIASED_MASK=$OUTPUT/$SUB-dwi_den_gibbs_preproc_unbiased_mask.mif
 PREPROCDWI_UNBIASED=$OUTPUT/$SUB-dwi_den_gibbs_preproc_unbiased.mif
@@ -646,47 +622,33 @@ fi
 
 #-------------------------------------------------------------------------------------------------------------
 
-# 9. Response Function Estimation using Multi-shell, Multi-Tissue CSD (Jeurissen et al 2014)
+# 8. Response Function Estimation using Multi-shell, Multi-Tissue CSD (Jeurissen et al 2014)
 WMRESP=$OUTPUT/${SUB}_${SES}_wmresp.txt
 GMRESP=$OUTPUT/${SUB}_${SES}_gmresp.txt
 CSFRESP=$OUTPUT/${SUB}_${SES}_csfresp.txt
 VOXELS=$OUTPUT/$SUB-voxels.mif
-
-STEP="STEP 9: Estimate Response Function:"
-
-SUBSTEP=": Calculate Response Functions for S."
-echo -e "\n$STEP $SUBSTEP \n"
-
 if [ ! -f $WMRESP ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then 
     echo "estimate response function from $PREPROCDWI_UNBIASED as $WMRESP with voxels selected for estimated saved here $VOXELS"
     echo "dwi2response dhollander ${FORCE} $PREPROCDWI_UNBIASED $WMRESP $GMRESP $CSFRESP -voxels $VOXELS"
-    #runtrixhere dwi2response dhollander ${FORCE} $PREPROCDWI_UNBIASED $WMRESP $GMRESP $CSFRESP -voxels $VOXELS
-    #dwi2response dhollander dwi.mif response_wm.txt response_gm.txt response_csf.txt -mask dwi_mask.mif
-    runtrixhere dwi2response dhollander ${FORCE} $PREPROCDWI_UNBIASED $WMRESP $GMRESP $CSFRESP -voxels $VOXELS -mask $DWIUNBIASED_MASK
+    runtrixhere dwi2response dhollander ${FORCE} $PREPROCDWI_UNBIASED $WMRESP $GMRESP $CSFRESP -voxels $VOXELS
 else
-    if [ $DEBUG = "False" ]; then echo "Already estimated response function from $PREPROCDWI_UNBIASED as $WMRESP with voxels selected for estimated saved here $VOXELS"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+    echo "Already estimated response function from $PREPROCDWI_UNBIASED as $WMRESP with voxels selected for estimated saved here $VOXELS"
 fi
 
-if [ $VIEWIMG = "True" ]
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
 then
-  echo -e "\nViewing mrview PREPROCDWI_UNBIASED -overlay.load VOXELS"
-  echo -e "\nmrview $PREPROCDWI_UNBIASED -overlay.load $VOXELS"
+  echo -e "\nViewing mrview $PREPROCDWI_UNBIASED -overlay.load $VOXELS"
   runtrix mrview $PREPROCDWI_UNBIASED -overlay.load $VOXELS
-  echo -e "\nshview \NWMRESP=$WMRESP"
+  echo -e "\nshview $WMRESP"
   runtrix shview $WMRESP
-  echo -e "\nshview \nGMRESP=$GMRESP"
+  echo -e "\nshview $GMRESP"
   runtrix shview $GMRESP
-  echo -e "\nshview \nCSFRESP=$CSFRESP"
+  echo -e "\nshview $CSFRESP"
   runtrix shview $CSFRESP
 fi
- 
-#------------------------------------------------------------------------
 
-
-# 10. Estimate FOD and normalize
+# 7. Estimate FOD and normalize
 WMFOD=$OUTPUT/$SUB_${SES}_wmfod.mif
 GMFOD=$OUTPUT/$SUB_${SES}_gmfod.mif
 CSFFOD=$OUTPUT/$SUB_${SES}_csffod.mif
@@ -694,13 +656,6 @@ WMFOD_NORM=$OUTPUT/$SUB_${SES}_wmfod_norm.mif
 GMFOD_NORM=$OUTPUT/$SUB_${SES}_gmfod_norm.mif
 CSFFOD_NORM=$OUTPUT/$SUB_${SES}_csffod_norm.mif
 T1BIASDWI_MASK_DIL_MIF=${OUTPUT}/${SUB}_${ANATSES}_T1w_mask_dil_M_dwispace.mif
-
-
-STEP="STEP 10: Estimate Response Function:"
-
-SUBSTEP=": Calculate FOD."
-echo -e "\n$STEP $SUBSTEP \n"
-
 if [ ! -f $WMFOD_NORM ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
    echo 
@@ -713,245 +668,181 @@ then
    #runtrix dwi2fod msmt_csd ${FORCE} $PREPROCDWI -mask $T1BIASDWI_MASK_DIL_MIF  $WMRESP $WMFOD $GMRESP $GMFOD $CSFRESP $CSFFOD
    # problems using dilated mask above - looks like DWIMASK covers everything even brain stem!!! 
    runtrix dwi2fod msmt_csd ${FORCE} $PREPROCDWI -mask $DWIUNBIASED_MASK $WMRESP $WMFOD $GMRESP $GMFOD $CSFRESP $CSFFOD
-
    #runtrix mtnormalise ${FORCE} $WMFOD $WMFOD_NORM $GMFOD $GMFOD_NORM $CSFFOD $CSFFOD_NORM -mask $T1BIASDWI_MASK_DIL_MIF
    runtrix mtnormalise ${FORCE} $WMFOD $WMFOD_NORM $GMFOD $GMFOD_NORM $CSFFOD $CSFFOD_NORM -mask $DWIUNBIASED_MASK 
 else
-    if [ $DEBUG = "False" ]; then echo "Already estimated and normalised fiber orientation distributions from $PREPROCDWI_UNBIASED"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
-
+   echo "Already estimated and normalised fiber orientation distributions from $PREPROCDWI_UNBIASED"
 fi
 
-#-----------------------------------------------
 
+#runtrix mrconvert $DWIUNBIASED_MASK $OUTPUT/test1.nii.gz
+#runtrix fsleyes  $OUTPUT/test1 $T1BIASDWI_MASK_DIL $T1BIASDWI_MASK
+
+FORCE="-force"
 VF_FILE=${OUTPUT}/vf.mif
 VFNORM_FILE=${OUTPUT}/vfnorm.mif
-RUNPROC10A=$WORK/010a_runproc.sh
-RUNPROC10B=$WORK/010b_runproc.sh
-
-SUBSTEP=": Generate VIF"
-echo -e "\n$STEP $SUBSTEP \n"
-
+RUNPROC1=$WORK/008a_runproc.sh
+RUNPROC2=$WORK/008b_runproc.sh
 if [ ! -f $VF_FILE ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
     echo "Create $VF_FILE and $VFNORM_FILE for viewing"
-    echo "mrconvert ${FORCE} -coord 3 0 $WMFOD - | mrcat ${FORCE} $CSFFOD $GMFOD - $VF_FILE" > $RUNPROC10A
-    chmod +x $RUNPROC10A
-    runtrixhere $RUNPROC10A
+    echo "mrconvert ${FORCE} -coord 3 0 $WMFOD - | mrcat ${FORCE} $CSFFOD $GMFOD - $VF_FILE" > $RUNPROC1
+    chmod +x $RUNPROC1
+    runtrixhere $RUNPROC1
 
-    echo "mrconvert ${FORCE} -coord 3 0 $WMFOD_NORM - | mrcat ${FORCE} $CSFFOD_NORM $GMFOD_NORM - $VFNORM_FILE" > $RUNPROC10B
-    chmod +x $RUNPROC10B   
-    runtrixhere $RUNPROC10B
+    echo "mrconvert ${FORCE} -coord 3 0 $WMFOD_NORM - | mrcat ${FORCE} $CSFFOD_NORM $GMFOD_NORM - $VFNORM_FILE" > $RUNPROC2
+    chmod +x $RUNPROC2   
+    runtrixhere $RUNPROC2
 else
-    if [ $DEBUG = "False" ]; then echo "already generated $VF_FILE"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+  echo "already generated $VF_FILE"
 fi
 
 
-if [ $VIEWIMG = "True" ]
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
 then
-  echo -e "\nmrview VF_FILE -odf.load_sh WMFOD"
-  echo -e "\nmrview $VF_FILE -odf.load_sh $WMFOD"
+  echo -e "\nViewing mrview $VF_FILE -odf.load_sh $WMFOD"
   runtrix mrview $VF_FILE -odf.load_sh $WMFOD
-  echo -e "\nmrview VFNORM_FILE -odf.load_sh WMFOD_NORM"
-  echo -e "\nmrview $VFNORM_FILE -odf.load_sh $WMFOD_NORM"
+  echo -e "\nViewing mrview $VFNORM_FILE -odf.load_sh $WMFOD_NORM"
   runtrix mrview $VFNORM_FILE -odf.load_sh $WMFOD_NORM
 
 fi
 
-
-#--------------------------------------------------
-# 11. Calculate Tissue Estimates for ACT
-
-STEP="STEP 11: Calculate Tissue Estimates for ACT:"
-
-SUBSTEP=": Convert T1 to mrtrix format."
-echo -e "\n$STEP $SUBSTEP \n"
-
-# convert T1 to mrtrix format
+# 8. convert T1 to mrtrix format
 T1=$OUTPUT/$SUB-T1.mif
 
 if [ ! -f $T1 ] && [ $DEBUG = "False" ]
 then
-    echo "convert T1W from nifti format $T1RAW to mrtrix format $T1"
-    echo "mrconvert -force $T1RAW $T1"
-    runtrix mrconvert -force $T1RAW $T1
+echo "convert T1W from nifti format $T1RAW to mrtrix format $T1"
+echo "mrconvert -force $T1RAW $T1"
+runtrix mrconvert -force $T1RAW $T1
 else
-    if [ $DEBUG = "False" ]; then echo "Already converted T1W from nifti format $T1RAW to mrtrix format $T1"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+echo "Already converted T1W from nifti format $T1RAW to mrtrix format $T1"
 fi
 
-# ----------------------------------------------
-SUBSTEP=": run 5tt Gen to generate 5 tissue map."
-echo -e "\n$STEP $SUBSTEP \n"
-
+# 9. convert T1 to mrtrix format
 FIVETT=$OUTPUT/$SUB-5tt.mif
 if [ ! -f $FIVETT ] && [ $DEBUG = "False" ]
 then
-    echo "Use FSL tp segment $T1 into 5 tissue types (Cortical GM, subcortical GM,WM,CSF,Pathological Tissue) in $FIVETT"
-    echo "5ttgen fsl $T1 $FIVETT"    
-    # use runtrixhere because file created in /opt/data (see TODO A)
-    runtrixhere 5ttgen fsl $T1 $FIVETT
+echo "Use FSL tp segment $T1 into 5 tissue types (Cortical GM, subcortical GM,WM,CSF,Pathological Tissue) in $FIVETT"
+echo "5ttgen fsl $T1 $FIVETT"
+# use runtrixhere because file created in /opt/data (see TODO A)
+runtrixhere 5ttgen fsl $T1 $FIVETT
 else
-    if [ $DEBUG = "False" ]; then  echo "Already used FSL tp segment $T1 into 5 tissue types (Cortical GM, subcortical GM,WM,CSF,Pathological Tissue) in $FIVETT"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+echo "Already used FSL tp segment $T1 into 5 tissue types (Cortical GM, subcortical GM,WM,CSF,Pathological Tissue) in $FIVETT"
 fi
 
-# ----------------------------------------------
-SUBSTEP=": Coregister 5TT to T1W."
-echo -e "\n$STEP $SUBSTEP \n"
 
+# 10 coregister DWI and T1
 FIVETTCOREG=$OUTPUT/$SUB-5tt-coreg.mif
 EPI2T1MAT=$OUTPUT/epi2t1.mat
 EPI2T1MAT_MRT=$OUTPUT/epi2t1_mrtrix.txt
 
 if [ ! -f $FIVETTCOREG ] && [ $DEBUG = "False" ]
 then
-    echo "Coregister $FIVETT to the DWI $PREPROCDWI as $FIVETTCOREG using FSL's epi-reg from previous FAST run"
-    echo "transformconvert -force $EPI2T1MAT ${meanB0}.nii.gz ${T1BIASBRAIN}.nii.gz  flirt_import $EPI2T1MAT_MRT"
-    echo "mrtransform -force $FIVETT -linear $EPI2T1MAT_MRT -inverse $FIVETTCOREG"
+echo "Coregister $FIVETT to the DWI $PREPROCDWI as $FIVETTCOREG using FSL's epi-reg from previous FAST run"
+echo "transformconvert -force $EPI2T1MAT ${meanB0}.nii.gz ${T1BIASBRAIN}.nii.gz  flirt_import $EPI2T1MAT_MRT"
+echo "mrtransform -force $FIVETT -linear $EPI2T1MAT_MRT -inverse $FIVETTCOREG"
 
-    runtrix transformconvert -force $EPI2T1MAT ${meanB0}.nii.gz ${T1BIASBRAIN}.nii.gz  flirt_import $EPI2T1MAT_MRT
-    runtrix mrtransform -force $FIVETT -linear $EPI2T1MAT_MRT -inverse $FIVETTCOREG
+runtrix transformconvert -force $EPI2T1MAT ${meanB0}.nii.gz ${T1BIASBRAIN}.nii.gz  flirt_import $EPI2T1MAT_MRT
+runtrix mrtransform -force $FIVETT -linear $EPI2T1MAT_MRT -inverse $FIVETTCOREG
 else
-    if [ $DEBUG = "False" ]; then  echo "Already Coregistered $FIVETT to the DWI $PREPROCDWI as $FIVETTCOREG using FSL's epi-reg"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+echo "Already Coregistered $FIVETT to the DWI $PREPROCDWI as $FIVETTCOREG using FSL's epi-reg"
+#
 fi
 
-if [ $VIEWIMG = "True" ]
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
 then
-    runtrix mrview $PREPROCDWI -overlay.load $FIVETTCOREG -overlay.colourmap 2 -overlay.load $FIVETT -overlay.colourmap 1
+runtrix mrview $PREPROCDWI -overlay.load $FIVETTCOREG -overlay.colourmap 2 -overlay.load $FIVETT -overlay.colourmap 1
 fi
-
-
-#-------------------------------------------------------------
-STEP="STEP 12: Create streamlines:"
-
-SUBSTEP=": Create streamline seeds at grey matter and white matter boundary."
-echo -e "\n$STEP $SUBSTEP \n"
 
 # 11 create streamline seeds at grey matter and white matter boundary
 GMWMBOUNDARY=$OUTPUT/$SUB-gmwmseed_coreg.mif
 if [ ! -f $GMWMBOUNDARY ] && [ $DEBUG = "False" ]
 then
-    echo "create Grey-white matter boundary as streamline seed from $FIVETTCOREG as $GMWMBOUNDARY"
-    echo "5tt2gmwmi -force $FIVETTCOREG $GMWMBOUNDARY"
-    runtrix 5tt2gmwmi -force $FIVETTCOREG $GMWMBOUNDARY
+echo "create Grey-white matter boundary as streamline seed from $FIVETTCOREG as $GMWMBOUNDARY"
+echo "5tt2gmwmi -force $FIVETTCOREG $GMWMBOUNDARY"
+runtrix 5tt2gmwmi -force $FIVETTCOREG $GMWMBOUNDARY
 else
-    if [ $DEBUG = "False" ]; then  echo "Already created Grey-white matter boundary as streamline seed from $FIVETTCOREG as $GMWMBOUNDARY"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+echo "Already created Grey-white matter boundary as streamline seed from $FIVETTCOREG as $GMWMBOUNDARY"
 fi
 
-#---------------------------------------------------------------------------
-SUBSTEP=": Create streamline seeds at grey matter and white matter boundary."
-echo -e "\n$STEP $SUBSTEP \n"
-
+# 12 generate streamlines using mask
 TRACKNUM=100000000
 TRACKS=$OUTPUT/$SUB-tracks_act_${TRACKNUM}.tck
-MAXLEN=250
-POW=0.33
-if [ ! -f $TRACKS ] 
+if [ ! -f $TRACKS ] && [ $DEBUG = "False" ]
 then
-   echo -e "\tGenerate $TRACKNUM whole brain tracks as $TRACKS"
-   #echo "tckgen -force -act $FIVETTCOREG -backtrack -seed_gmwmi $GMWMBOUNDARY -select $TRACKNUM $WMFOD_NORM  $TRACKS"
-   #runtrix tckgen -force -act $FIVETTCOREG -backtrack -seed_gmwmi $GMWMBOUNDARY -select $TRACKNUM $WMFOD_NORM  $TRACKS
-   # consider -crop_at_gmwmi and -seed-dynamic options - copied directly below from mrtrix3_connectome
-   echo -e "\ttckgen $WMFOD_NORM $TRACKS -act $FIVETTCOREG -backtrack -crop_at_gmwmi -maxlength $MAXLEN -power $POW -select $TRACKNUM  -seed_dynamic $WMFOD_NORM"
-   runtrix tckgen $WMFOD_NORM $TRACKS -act $FIVETTCOREG -backtrack -crop_at_gmwmi -maxlength $MAXLEN -power $POW -select $TRACKNUM  -seed_dynamic $WMFOD_NORM
+echo "Generate $TRACKNUM whole brain tracks as $TRACKS"
+echo "tckgen -force -act $FIVETTCOREG -backtrack -seed_gmwmi $GMWMBOUNDARY -select $TRACKNUM $WMFOD_NORM  $TRACKS"
+runtrix tckgen -force -act $FIVETTCOREG -backtrack -seed_gmwmi $GMWMBOUNDARY -select $TRACKNUM $WMFOD_NORM  $TRACKS
+# consider -crop_at_gmwmi and -seed-dynamic options
 else
-    if [ $DEBUG = "False" ]; then echo "Already Generated $TRACKNUM whole brain tracks as $TRACKS"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+echo "Already Generated $TRACKNUM whole brain tracks as $TRACKS"
 fi
 
-#-----------------------------------------
 SUBTRACKS=200k
 TRACKSUB=$OUTPUT/$SUB-tracks_actview_${SUBTRACKS}.tck
-if [ $VIEWIMG = "True" ] 
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
 then
   echo
   echo "Viewing $TRACKS in mrview"
   runtrix tckedit $TRACKS -number $SUBTRACKS $TRACKSUB
   runtrix mrview $PREPROCDWI -tractography.load $TRACKSUB
 fi
-#----------------------------------------------------------
-SUBSTEP=": Using tcksift2."
-echo -e "\n$STEP $SUBSTEP \n"
 
-#SIFTTRACKNUM=10000000
-#echo "Generate $SIFTTRACKNUM whole brain tracks as $TRACKSIFT using SIFT algorithm"
-#echo "tcksift -force -act $FIVETTCOREG -term_number $SIFTTRACKNUM $TRACKS $WMFOD_NORM $TRACKSIFT"
-#runtrix tcksift -force -act $FIVETTCOREG -term_number $SIFTTRACKNUM $TRACKS $WMFOD_NORM $TRACKSIFT
-
-TRACKSIFTWEIGHT=$OUTPUT/$SUB-tracks_act_sift_weight.csv
-PROPCOEFF=$OUTPUT/$SUB-tracks_act_sift_mu.txt
-if [ ! -f $TRACKSIFTWEIGHT ] 
+# 13 SIFT
+SIFTTRACKNUM=10000000
+TRACKSIFT=$OUTPUT/$SUB-tracks_act_sift_${SIFTTRACKNUM}.tck
+if [ ! -f $TRACKSIFT ] && [ $DEBUG = "False" ]
 then
-   echo -e "\tGenerate $SIFTTRACKNUM whole brain tracks as $TRACKSIFT using SIFT2 algorithm"
-   echo -e "\truntrix tcksift2 -force $TRACKS $WMFOD_NORM $TRACKSIFTWEIGHT -act $FIVETTCOREG -out_mu $PROPCOEFF"
-   runtrix tcksift2 -force $TRACKS $WMFOD_NORM $TRACKSIFTWEIGHT -act $FIVETTCOREG -out_mu $PROPCOEFF
+echo "Generate $SIFTTRACKNUM whole brain tracks as $TRACKSIFT using SIFT algorithm"
+echo "tcksift -force -act $FIVETTCOREG -term_number $SIFTTRACKNUM $TRACKS $WMFOD_NORM $TRACKSIFT"
+runtrix tcksift -force -act $FIVETTCOREG -term_number $SIFTTRACKNUM $TRACKS $WMFOD_NORM $TRACKSIFT
 else
-   if [ $DEBUG = "False" ]; then  echo "Already Generated  $TRACKSIFTWEIGHT using SIFT2 algorithm"
-   else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-   fi
+echo "Already Generated  $SIFTTRACKNUM whole brain tracks as $TRACKSIFT using SIFT algorithm"
 fi
 
-#-------------------------------------------------------
-
-# How to visualize output of tcksift 
-
-#SUBTRACKSIFT=200k
-#TRACKSUBSIFT=$OUTPUT/$SUB-tracks_act_siftview_${SUBTRACKSIFT}.tck
-#if [ $VIEWIMG = "True" ] 
-#then
-#  echo
-#  echo "Viewing $TRACKS in mrview"
-#  runtrix tckedit $TRACKSIFT -number $SUBTRACKSIFT $TRACKSUBSIFT
-#  runtrix mrview $PREPROCDWI -tractography.load $TRACKSUBSIFT
-#fi
+SUBTRACKSIFT=200k
+TRACKSUBSIFT=$OUTPUT/$SUB-tracks_act_siftview_${SUBTRACKSIFT}.tck
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
+then
+  echo
+  echo "Viewing $TRACKS in mrview"
+  runtrix tckedit $TRACKSIFT -number $SUBTRACKSIFT $TRACKSUBSIFT
+  runtrix mrview $PREPROCDWI -tractography.load $TRACKSUBSIFT
+fi
 
 # compare SIFT and non-SIFT with smaller number of tracks properly
-#SUBTRACKSIFT=20k
-#TRACKSUBSIFT=$OUTPUT/$SUB-tracks_act_siftview_${SUBTRACKSIFT}.tck
-#SUBTRACKS=20k
-#TRACKSUB=$OUTPUT/$SUB-tracks_actview_${SUBTRACKS}.tck
-#if [ $VIEWIMG = "True" ] 
-#then
-#  runtrix tckedit $TRACKSIFT -number $SUBTRACKSIFT $TRACKSUBSIFT
-#  runtrix tckedit $TRACKS -number $SUBTRACKS $TRACKSUB
-#  runtrix mrview $PREPROCDWI -tractography.load $TRACKSUBSIFT &
-#  runtrix mrview $PREPROCDWI -tractography.load $TRACKSUB
-#fi
+SUBTRACKSIFT=20k
+TRACKSUBSIFT=$OUTPUT/$SUB-tracks_act_siftview_${SUBTRACKSIFT}.tck
+SUBTRACKS=20k
+TRACKSUB=$OUTPUT/$SUB-tracks_actview_${SUBTRACKS}.tck
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
+then
+  runtrix tckedit $TRACKSIFT -number $SUBTRACKSIFT $TRACKSUBSIFT
+  runtrix tckedit $TRACKS -number $SUBTRACKS $TRACKSUB
+  runtrix mrview $PREPROCDWI -tractography.load $TRACKSUBSIFT &
+  runtrix mrview $PREPROCDWI -tractography.load $TRACKSUB
+fi
+
 
 #14 for whole brain connectome we require a subject-specific atlas - Use freesurfer for this this test
 # Create a mask and brain from the Freesurfer mask by transforming to EPI space and compare with previous masks
-#APARCASEGFS=$OUTPUT/${SUB}_${SES}_aparc-aseg.mgz
-#APARCASEG=$OUTPUT/${SUB}_${SES}_aparc-aseg.nii.gz
-#APARCASEGDWI=$OUTPUT/${SUB}_${SES}_aparc-aseg_dwispace.nii.gz
-#if [ ! -f ${APARCASEG} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
-#then
-#    echo "Using existing aparcaseg convert from Freesurfer space to native space"
-#    runtrix ${FREESURF}/freebash.sh ${FREEDIR} mri_label2vol --seg ${FREEDIR}/${SUB}/mri/aparc+aseg.mgz --temp ${FREEDIR}/${SUB}/mri/rawavg.mgz --o ${APARCASEGFS} #--regheader ${FREEDIR}/${SUB}/mri/aparc+aseg.mgz
+APARCASEGFS=$OUTPUT/${SUB}_${SES}_aparc-aseg.mgz
+APARCASEG=$OUTPUT/${SUB}_${SES}_aparc-aseg.nii.gz
+APARCASEGDWI=$OUTPUT/${SUB}_${SES}_aparc-aseg_dwispace.nii.gz
+if [ ! -f ${APARCASEG} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
+then
+    echo "Using existing aparcaseg convert from Freesurfer space to native space"
+    runtrix ${FREESURF}/freebash.sh ${FREEDIR} mri_label2vol --seg ${FREEDIR}/${SUB}/mri/aparc+aseg.mgz --temp ${FREEDIR}/${SUB}/mri/rawavg.mgz --o ${APARCASEGFS} --regheader ${FREEDIR}/${SUB}/mri/aparc+aseg.mgz
 
-#    runtrix $FREESURF/freebash.sh ${FREEDIR} mri_convert --in_type mgz --out_type nii  ${APARCASEGFS} ${APARCASEG}
+    runtrix $FREESURF/freebash.sh ${FREEDIR} mri_convert --in_type mgz --out_type nii  ${APARCASEGFS} ${APARCASEG}
 
-#    echo "flirt -in ${APARCASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${APARCASEGDWI}"
-#    runtrix flirt -in ${APARCASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${APARCASEGDWI}
+    echo "flirt -in ${APARCASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${APARCASEGDWI}"
+    runtrix flirt -in ${APARCASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${APARCASEGDWI}
 
-#else
-#    echo "Aparc-aseg created and transformed to DWI"
-#fi
-#-----------------------------------------------------------------------
-STEP="STEP 13: Create Connectome for Aparc.aseg2009:"
-
-SUBSTEP=": Create Aparc2009-aseg in DWI Space"
-echo -e "\n$STEP $SUBSTEP \n"
+else
+    echo "Aparc-aseg created and transformed to DWI"
+fi
 
 APARC2009ASEGFS=$OUTPUT/${SUB}_${SES}_aparc2009-aseg.mgz
 APARC2009ASEG=$OUTPUT/${SUB}_${SES}_aparc2009-aseg.nii.gz
@@ -967,130 +858,94 @@ then
     runtrix flirt -in ${APARC2009ASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${APARC2009ASEGDWI}
 
 else
-    if [ $DEBUG = "False" ]; then  echo "Aparc2009-aseg already created and transformed to DWI"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+    echo "Aparc2009-aseg created and transformed to DWI"
 fi
   
-#---------------------------------
-if [ $VIEWIMG = "True" ] 
+
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
 then
-     runtrix fsleyes ${PREPROCDWI_NII} ${APARCASEGDWI} ${APARC2009ASEGDWI} $FSDWI_BRAIN 
+ runtrix fsleyes ${PREPROCDWI_NII} ${APARCASEGDWI} ${APARC2009ASEGDWI} $FSDWI_BRAIN 
 fi
 
-#----------------------------------------------
+
+#15 Use labelconvert
 FREELABEL=/opt/freesurfer/FreeSurferColorLUT.txt
 FREEORDERED=/opt/mrtrix3/share/mrtrix3/labelconvert/fs_a2009s.txt
 APARC2009NODES=${OUTPUT}/${SUB}_${SES}_aparc2009_nodes.mif
 APARC2009NODEST1W=${OUTPUT}/${SUB}_${SES}_aparc2009_nodes_T1w.nii.gz
-
-SUBSTEP=": Use labelConvert to order labels sequentially for aparc2009"
-echo -e "\n$STEP $SUBSTEP \n"
-
-
 if [ ! -f ${APARC2009NODES} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
-    echo "Generating ordered nodes for aparc2009 in DWI space"
-    runtrix labelconvert $APARC2009ASEGDWI $FREELABEL $FREEORDERED $APARC2009NODES
-    #runtrix cp $FREELABEL $WORKDIR/FreeSurferColorLUT.txt
-    #runtrix cp $FREEORDERED $WORKDIR/fs_a2009s.txt
-    echo "Generating ordered nodes for aparc2009 in T1w space - useful for fmri processing" 
-    runtrix labelconvert $APARC2009ASEG $FREELABEL $FREEORDERED $APARC2009NODEST1W
-else
-    if [ $DEBUG = "False" ]; then echo "Ordered Nodes for Aparc2009 created."
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+runtrix labelconvert $APARC2009ASEGDWI $FREELABEL $FREEORDERED $APARC2009NODES
+#runtrix cp $FREELABEL $WORKDIR/FreeSurferColorLUT.txt
+#runtrix cp $FREEORDERED $WORKDIR/fs_a2009s.txt
+echo "Generating ordered nodes for aparc2009 in T1w space"
+runtrix labelconvert $APARC2009ASEG $FREELABEL $FREEORDERED $APARC2009NODEST1W
 fi
 
 
 if [ $VIEWIMG = "True" ]
 then
-   runtrix mrview $APARC2009NODES
+ runtrix mrview $APARC2009NODES
 fi
 
-#---------------------
+
 # Generate Matrix using APARC2009
-APARC2009MATRIX=$OUTPUT/${SUB}_${SES}_aparc2009_matrix.csv
-APARC2009MEANLEN=$OUTPUT/${SUB}_${SES}_aparc2009_meanlen.csv
-APARC2009ASSG=$OUTPUT/${SUB}_${SES}_aparc2009_assignments.csv
-
-SUBSTEP=": Generate connectome using aparc2009"
-echo -e "\n$STEP $SUBSTEP \n"
-
-
+APARC2009MATRIX=$OUTPUT/${SUB}_${SES}_aparc2009matrix.csv
+APARC2009ASSG=$OUTPUT/${SUB}_${SES}_assignments_aparc2009matrix.csv
 if [ ! -f ${APARC2009MATRIX} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
-    #runtrix tck2connectome -symmetric -zero_diagonal -scale_invnodevol $TRACKSIFT $APARC2009NODES ${APARC2009MATRIX} -out_assignment $APARC2009ASSG
-    echo -e "\tGenerate matrix for aparc 2009"
-    echo -e "\truntrix tck2connectome $TRACKS $APARC2009NODES $APARC2009MATRIX -tck_weights_in $TRACKSIFTWEIGHT -out_assignment $APARC2009ASSG"
-    runtrix tck2connectome $TRACKS $APARC2009NODES $APARC2009MATRIX -tck_weights_in $TRACKSIFTWEIGHT -out_assignment $APARC2009ASSG
-    echo -e "\tGenerate mean length"
-    echo -e "runtrix tck2connectome $TRACKS $APARC2009NODES $APARC2009MEANLEN -tck_weights_in $TRACKSIFTWEIGHT -scale_length -stat_edge mean"
-    runtrix tck2connectome $TRACKS $APARC2009NODES $APARC2009MEANLEN -tck_weights_in $TRACKSIFTWEIGHT -scale_length -stat_edge mean
-else
-    if [ $DEBUG = "False" ]; then echo "Already Created Matrix for aparc2009."
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+runtrix tck2connectome -symmetric -zero_diagonal -scale_invnodevol $TRACKSIFT $APARC2009NODES ${APARC2009MATRIX} -out_assignment $APARC2009ASSG
 fi
 
 
-#------------------------
 
 #Select Connections of Interest, between areas
 #L-hippocampus (80) and L Thalamus (76), L Temporal Pole (43) , L amygdala (81)  and L Parahippcampal gyrus (88)
-#LHIPPO76=$OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lThalamus76-80.tck
-APARC2009EXEMPLARS=$OUTPUT/${SUB}_${SES}_aparc2009_exemplars.tck
-
-SUBSTEP=": Generate Exemplar using aparc2009"
-echo -e "\n$STEP $SUBSTEP \n"
-
-if [ ! -f ${APARC2009EXEMPLARS} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
+LHIPPO76=$OUTPUT/${SUB}_${SES}_lHippo.lThalamus76-80.tck
+if [ ! -f ${LHIPPO76} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
-    #runtrix connectome2tck -nodes 80,76  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lThalamus
-    #runtrix connectome2tck -nodes 80,43  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lTemporalPole
-    #runtrix connectome2tck -nodes 80,81  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lAmygdala
-    #runtrix connectome2tck -nodes 80,23  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lParahippo
-    #runtrix connectome2tck -nodes 87,83  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rThalamus
-    #runtrix connectome2tck -nodes 87,132 -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rTemporalPole
-    #runtrix connectome2tck -nodes 87,88  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rAmygdala
-    #runtrix connectome2tck -nodes 87,112 -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rParahippo
-    # create exemplar
-    echo "connectome2tck $TRACKS $APARC2009ASSG $APARC2009EXEMPLARS -tck_weights_in $TRACKSIFTWEIGHT -exemplars $APARC2009NODES -files single"
-    runtrix connectome2tck $TRACKS $APARC2009ASSG $APARC2009EXEMPLARS -tck_weights_in $TRACKSIFTWEIGHT -exemplars $APARC2009NODES -files single
-else
-    if [ $DEBUG = "False" ]; then echo "Created Exemplar for aparc2009"
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+runtrix connectome2tck -nodes 80,76  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_lHippo.lThalamus
+runtrix connectome2tck -nodes 80,43  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_lHippo.lTemporalPole
+runtrix connectome2tck -nodes 80,81  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_lHippo.lAmygdala
+runtrix connectome2tck -nodes 80,23  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_lHippo.lParahippo
+runtrix connectome2tck -nodes 87,83  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_rHippo.rThalamus
+runtrix connectome2tck -nodes 87,132 -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_rHippo.rTemporalPole
+runtrix connectome2tck -nodes 87,88  -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_rHippo.rAmygdala
+runtrix connectome2tck -nodes 87,112 -exclusive $TRACKSIFT $APARC2009ASSG $OUTPUT/${SUB}_${SES}_rHippo.rParahippo
 fi
 
+
 # view connections of interest
-#if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
-#then
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lThalamus76-80.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lTemporalPole43-80.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lAmygdala80-81.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_lHippo.lParahippo23-80.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rThalamus83-87.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rTemporalPole87-132.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rAmygdala87-88.tck
-   #runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_rHippo.rParahippo87-112.tck
-#fi
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
+then
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_lHippo.lThalamus76-80.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_lHippo.lTemporalPole43-80.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_lHippo.lAmygdala80-81.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_lHippo.lParahippo23-80.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_rHippo.rThalamus83-87.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_rHippo.rTemporalPole87-132.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_rHippo.rAmygdala87-88.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_rHippo.rParahippo87-112.tck
+fi
+
+
 
 # extract srtreamlines from a region of interest - look at L (80) and R hippocampus (87)
-#LHIPPO=$OUTPUT/${SUB}_${SES}_aparc2009_Hippo80.tck
-#RHIPPO=$OUTPUT/${SUB}_${SES}_aparc2009_Hippo87.tck
-#if [ ! -f ${LHIPPO} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
-#then
-#   runtrix connectome2tck -nodes 80,87 $TRACKSIFT $APARC2009ASSG -files per_node $OUTPUT/${SUB}_${SES}_aparc2009_Hippo
-#fi
+LHIPPO=$OUTPUT/${SUB}_${SES}_Hippo80.tck
+RHIPPO=$OUTPUT/${SUB}_${SES}_Hippo87.tck
+if [ ! -f ${LHIPPO} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
+then
+runtrix connectome2tck -nodes 80,87 $TRACKSIFT $APARC2009ASSG -files per_node $OUTPUT/${SUB}_${SES}_Hippo
+fi
 
 # view tracts
-#if [ $VIEWIMG = "True" ] 
-#then
-#   runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_Hippo87.tck
-#   runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_aparc2009_Hippo80.tck
-#fi
-#--------------------------------------------------------------------------------------------
+if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
+then
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_Hippo87.tck
+runtrix mrview $FSDWI_BRAIN -tractography.load $OUTPUT/${SUB}_${SES}_Hippo80.tck
+fi
+
+
 # Create Symbolic links to fsaverage, lh.EC_average and rh.EC_average for hcpmmp1 atlas creation
 LH_HCPANNOT=/xdisk/nkchen/chidi/repos/DTI-hippo/custom-pipeline/hcpmmp1_atlas/lh.HCPMMP1.annot
 RH_HCPANNOT=/xdisk/nkchen/chidi/repos/DTI-hippo/custom-pipeline/hcpmmp1_atlas/rh.HCPMMP1.annot
@@ -1098,13 +953,6 @@ HCPMMP1ASEGFS=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg.mgz
 HCPMMP1ASEGFS_NATIVE=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg_native.mgz
 HCPMMP1ASEG=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg.nii.gz
 HCPMMP1ASEGDWI=$OUTPUT/${SUB}_${SES}_aparc.HCPMMP1+aseg_dwispace.nii.gz
-
-STEP="STEP 14: Create Connectome for HCPMMP:"
-
-SUBSTEP=": Create HCPMMP in DWI Space"
-echo -e "\n$STEP $SUBSTEP \n"
-
-
 if [ ! -f ${HCPMMP1ASEGDWI} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
     FSAVERAGE_TARGET=${FREEDIR}/fsaverage
@@ -1135,84 +983,37 @@ then
 
     echo "flirt -in ${HCPMMP1ASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${HCPMMP1ASEGDWI}"
     runtrix flirt -in ${HCPMMP1ASEG} -ref ${meanB0} -applyxfm  -interp nearestneighbour -init ${FS2EPIMAT} -out ${HCPMMP1ASEGDWI}
-else
-    if [ $DEBUG = "False" ]; then echo "Created HCPMMP in T1 and DWI Space."
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+
 fi
-#--------------------------------------------------------------------------------------------
+
+
 # Use labelconvert
 HCPMMPLABEL=/opt/mrtrix3/share/mrtrix3/labelconvert/hcpmmp1_original.txt
 HCPMMPORDERED=/opt/mrtrix3/share/mrtrix3/labelconvert/hcpmmp1_ordered.txt
 HCPMMPNODES=${OUTPUT}/${SUB}_${SES}_aparc.HCPMMP1+aseg_nodes.mif
 HCPMMPNODEST1W=${OUTPUT}/${SUB}_${SES}_aparc.HCPMMP1+aseg_nodes_T1w.nii.gz
-
-SUBSTEP=": Label Convert HCPMMP in sequential order."
-echo -e "\n$STEP $SUBSTEP \n"
-
-
 if [ ! -f ${HCPMMPNODES} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
-    echo "Generating ordered nodes for hcpmmp1 in DWI space"
-    runtrix labelconvert $HCPMMP1ASEGDWI $HCPMMPLABEL $HCPMMPORDERED $HCPMMPNODES
-
-    echo "Generating ordered nodes for hcpmmp1 in T1w space"
-    runtrix labelconvert $HCPMMP1ASEG $HCPMMPLABEL $HCPMMPORDERED $HCPMMPNODEST1W
-else
-    if [ $DEBUG = "False" ]; then echo "Label Convert of HCPMMP already run."
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+echo "Generating ordered nodes for hcpmmp1 in DWI space"
+runtrix labelconvert $HCPMMP1ASEGDWI $HCPMMPLABEL $HCPMMPORDERED $HCPMMPNODES
+echo "Generating ordered nodes for hcpmmp1 in T1w space"
+runtrix labelconvert $HCPMMP1ASEG $HCPMMPLABEL $HCPMMPORDERED $HCPMMPNODEST1W
 fi
 
-#-------------
+
 if [ $VIEWIMG = "True" ] && [ $DEBUG = "False" ]
 then
-    runtrix mrview $HCPMMPNODES
+ runtrix mrview $HCPMMPNODES
 fi
 
-#----------------------------------------
 
-# Generate Matrix using HCPMMP
+# Generate Matrix using APARC2009
 HCPMMPMATRIX=$OUTPUT/${SUB}_${SES}_HCPMMP1+aseg_matrix.csv
-HCPMMPASSG=$OUTPUT/${SUB}_${SES}_HCPMMP1+aseg_assignments.csv
-HCPMMPMEANLEN=$OUTPUT/${SUB}_${SES}_HCPMMP1+aseg_meanlen.csv
-
-
-SUBSTEP=": Create HCPMMP Matrix."
-echo -e "\n$STEP $SUBSTEP \n"
-
-
+HCPMMPASSG=$OUTPUT/${SUB}_${SES}_assignments_HCPMMP1+aseg_matrix.csv
 if [ ! -f ${HCPMMPMATRIX} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
 then
-    #runtrix tck2connectome -symmetric -zero_diagonal -scale_invnodevol $TRACKSIFT $HCPMMPNODES ${HCPMMPMATRIX} -out_assignment $HCPMMPASSG
-    runtrix tck2connectome $TRACKS $HCPMMPNODES $HCPMMPMATRIX -tck_weights_in $TRACKSIFTWEIGHT -out_assignment $HCPMMPASSG
-    runtrix tck2connectome $TRACKS $HCPMMPNODES $HCPMMPMEANLEN -tck_weights_in $TRACKSIFTWEIGHT -scale_length -stat_edge mean
-else
-    if [ $DEBUG = "False" ]; then echo "HCPMMP Matrix already created."
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
+runtrix tck2connectome -symmetric -zero_diagonal -scale_invnodevol $TRACKSIFT $HCPMMPNODES ${HCPMMPMATRIX} -out_assignment $HCPMMPASSG
 fi
-
-#--------------------------------------
-HCPMMPEXEMPLARS=$OUTPUT/${SUB}_${SES}_HCPMMP+aseg_exemplars.tck
-SUBSTEP=": Creating Exemplars for HCPMMP."
-
-echo -e "\n$STEP $SUBSTEP \n"
-
-
-if [ ! -f ${HCPMMPEXEMPLARS} ] || [ ${OVERWRITE} = "True" ] && [ $DEBUG = "False" ]
-then
-    echo "Creating HCPMMP Exemplars."
-    echo "connectome2tck $TRACKS $HCPMMPASSG $HCPMMPEXEMPLARS -tck_weights_in $TRACKSIFTWEIGHT -exemplars $HCPMMPNODES -files single"
-    runtrix connectome2tck $TRACKS $HCPMMPASSG $HCPMMPEXEMPLARS -tck_weights_in $TRACKSIFTWEIGHT -exemplars $HCPMMPNODES -files single
-else
-    if [ $DEBUG = "False" ]; then echo "HCPMMP exemplars already created."
-    else echo -e "\tRunning in Debug mode. $STEP $SUBSTEP skipped.\n"
-    fi
-fi
-
-#--------------------------
-
 
 
 

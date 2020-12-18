@@ -34,3 +34,15 @@ This is the way to run the pipeline after the initial run. Setting the parameter
 Open the script run-direct.sh and change --sub="sub-????"` to point to the subject you previously ran. Ensure that all other locations (--datadir etc) match the values you had in `submit-run.sh`.
 
 run  as `./run-direct.sh`
+
+## Debug mode
+You can run the script in debug mode by sourcing the `setvars.sh` script as follows:
+
+```
+. ./setvars.sh
+```
+
+This will not running any of the commands but wil make all the variables in the script `createMatrix.sh` available to you so that you can run individual commands.
+
+
+

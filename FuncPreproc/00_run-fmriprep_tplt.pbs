@@ -1,0 +1,40 @@
+#!/bin/bash
+#SBATCH --ntasks=<<NPROCS>>
+#SBATCH --ntasks-per-node=<<NPROCS>> 
+#SBATCH --nodes=1 
+#SBATCH --mem-per-cpu=<<MEMGB>> 
+#SBATCH --time=<<CPUT>>:00:00
+#SBATCH --job-name=rpt-<<JOBNAME>>
+#SBATCH --account=<<PI>>
+#SBATCH --partition=<<QUEUE>>
+
+MEM=<<FMRIMEM>>
+CPU=<<FMRIPROCS>>
+singloc=<<SINGLOC>>
+WORKDIR=<<WORKDIR>>
+templateflow=<<TEMPLATEFLOW>>
+export SINGULARITYENV_TEMPLATEFLOW_HOME=$templateflow
+
+bidsdir=<<DATADIR>>
+outputdir=<<FMRIOUTPUT>>
+WORK=<<FMRIWORKDIR>>
+workdir=${WORK}/work
+tmpdir=${WORK}/tmp
+exthome=${WORK}/home
+licloc=${WORKDIR}/license.txt
+SUB=<<SUB>>
+
+analysis_level=participant
+
+bind="-B ${bids_dir}:/media  -B ${workdir}:/work -B ${tmpdir}:/tmp -B ${outputdir}:/mnt"
+
+home="-H ${exthome}:/tmp --no-home"
+
+params="--participant_label ${SUB}  --cifti-output  --output-spaces MNI152NLin6Asym:res-2 anat MNI152NLin2009cAsym fsLR --skip-bids-validation --use-syn-sdc --mem_mb ${MEM} --nthreads ${CPU}  -w $workdir --use-aroma --fs-license-file ${licloc}"
+
+# Not using bind
+#echo "singularity run --cleanenv $home $bind $singloc $params $bidsdir $outputdir ${analysis_level}"
+echo "singularity run --cleanenv $home $singloc $params $bidsdir $outputdir ${analysis_level}"
+singularity run --cleanenv $home $singloc $params $bidsdir $outputdir ${analysis_level}
+
+

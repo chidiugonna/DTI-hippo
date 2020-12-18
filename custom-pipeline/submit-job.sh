@@ -6,10 +6,14 @@ OVERWRITE="False"
 VIEWIMG="False"
 SES="ses-post"
 ANATSES="ses-pre"
-SINGIMG="/xdisk/yinghuichou/singularity3-images/nklab-neuroproc-v0.2.sif"
+SINGIMG="/xdisk/nkchen/chidi/repos/DTI-hippo/singularity/nklab-neuroproc/nklab-neuroproc-v0.3.sif"
+OUTPUT=$PWD/output
+DEBUG="False"
 
-for number in $(seq -f "%03g" 12 12)
+#NUMS="017 018 020"
+#for number in $NUMS
+for number in $(seq -f "%03g" 11 12)
 do
 SUB=sub-cort$number
-sbatch --export=ALL,SUB=$SUB,SES=$SES,ANATSES=$ANATSES,WORKDIR=$WORKDIR,DATADIR=$DATADIR,OVERWRITE=$OVERWRITE,VIEWIMG=$VIEWIMG,SINGIMG=$SINGIMG $WORKDIR/createMatrix.sh 
+sbatch --export=ALL,SUB=$SUB,SES=$SES,ANATSES=$ANATSES,WORKDIR=$WORKDIR,DATADIR=$DATADIR,OVERWRITE=$OVERWRITE,VIEWIMG=$VIEWIMG,SINGIMG=$SINGIMG,OUTPUT=$OUTPUT,DEBUG=$DEBUG $WORKDIR/createMatrix.sh 
 done
