@@ -2222,13 +2222,22 @@ def run_participant(bids_dir, session, shared,
             freesurfer_T1w_input = 'T1.nii'
             run.command('mrconvert T1.mif T1.nii -strides +1,+2,+3')
 
+        RUNFREESURFER=False
 
-        if os.path.exists(app.ARGS.freedir):
-            app.console('copying freesurfer directory to scratch directory')
-            run.function(shutil.copytree,
+        if (app.ARGS.freedir is None):
+            RUNFREESURFER=True
+
+        if not(RUNFREESURFER):
+            if os.path.exists(app.ARGS.freedir):
+                app.console('copying freesurfer directory to scratch directory')
+                run.function(shutil.copytree,
                      app.ARGS.freedir,
                      os.path.join(app.SCRATCH_DIR,'freesurfer'))
-        else:
+            else:
+                app.console("The passed Freesurfer directory doesn't exist. Running Freesurfer")
+                RUNFREESURFER=True
+
+        if RUNFREESURFER:
             run.command('recon-all -sd '
                     + app.SCRATCH_DIR
                     + ' -subjid freesurfer '
